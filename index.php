@@ -8,35 +8,61 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 require 'vendor/autoload.php';
 
-//  title: ---------------------------- Enviando informações no cabeçalho da requisição ----------------------
+// title: ----------------------------- Configurando Middleware(filtro) para rotas ---------------------------
 $app = new \Slim\App([ // @ Iniciando o objeto Slim para usarmos.
     'settings' => [ // @ Ativa a exibição de erros na config do objeto.
         'displayErrorDetails' => true
     ]
 ]);
-// title: Setando configuração do Header 
-    $app->get('/header', function(Request $request, Response $response){
-        $response->withHeader('allow', 'PUT'); // @ Configurando o header para receber apenas requisições do tipo PUT.
+// title: Criando middleware 
+$app->add( function ($request, $response, $next){ // @ O middleware é criado oara todas as rotas e serve para filtrar antes de chegar nas rotas de fato 
+    $response->write('Inicio camada 1 +'); // @ Acessa isso ao entrar no middleware
+    $next($request, $response);
+    $response->write(' + Passando de novo no filtro 1'); // @ Acesso ao sair do middleware
+    return $response;
+});
+// title: Primeira camada à ser executada.
+$app->add( function($request, $response, $next){ // @ as camadas de filtros(middlewares) é definida de baixo para cima, assim essa é a primeira.
+    $response->write(' Inicio camada 2 +'); // @ Acessa isso ao entrar no middleware
+    $next($request, $response); 
+    $response->write(' + Passando de novo filtro 2'); // @ Acesso ao sair do middleware
+    return $response;
+});
 
-        $response->withAddedHeader('Content-lengh', 10); // @ Configurnado o header para ter um limite de resposta em caractere.
-    });
+$app->get( '/usuarios', function(Request $request, Response $response){
+    $response->write(' Ação principal usuarios');
+});
+$app->get( '/postagens', function(Request $request, Response $response){
+    $response->write(' Ação principal postagens');
+});
+
+$app->run();
+// title: ----------------------------------------------------------------------------------------------------
+
+//  title: ---------------------------- Enviando informações no cabeçalho da requisição ----------------------
+
+// title: Setando configuração do Header 
+    // $app->get('/header', function(Request $request, Response $response){
+    //     $response->withHeader('allow', 'PUT'); // @ Configurando o header para receber apenas requisições do tipo PUT.
+    //     $response->withAddedHeader('Content-lengh', 10); // @ Configurnado o header para ter um limite de resposta em caractere.
+    // });
 // title: Tipo de respostas
 //@ XML, Json, text
-$app->get('/response_json', function(Request $request, Response $response){
-    return $response->withJson([
-        'nome' => 'Samuel Jesus',
-        'idade' => '19'
-    ]); // @ Transformando resposta em JSON.
-});
-$app->get('/response_xml', function(Request $request, Response $response){
-    $xml = file_get_contents('arquivo');
-    $response->write($xml); // @ Transformando resposta em XML.
-    return $response->withHeader('Content-Type', 'application/xml');
-});
-$app->run();
+// $app->get('/response_json', function(Request $request, Response $response){
+//     return $response->withJson([
+//         'nome' => 'Samuel Jesus',
+//         'idade' => '19'
+//     ]); // @ Transformando resposta em JSON.
+// });
+// $app->get('/response_xml', function(Request $request, Response $response){
+//     $xml = file_get_contents('arquivo');
+//     $response->write($xml); // @ Transformando resposta em XML.
+//     return $response->withHeader('Content-Type', 'application/xml');
+// });
+
 // title: ---------------------------------------------------------------------------------------------------
 
-//  title: -------------------------- Fazendo Injeção de dependências com container --------------------------------------
+// title: -------------------------- Fazendo Injeção de dependências com container --------------------------------------
 
     //title:  Utilizando dependency Injection  com Container Pimple
     // $container = $app->getContainer();// @ Recupera o container do slim que utiliza o pimple.
