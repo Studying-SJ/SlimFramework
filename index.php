@@ -1,6 +1,7 @@
 <?php
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Illuminate\Database\Capsule\Manager as Capsule; //title: Utilizando lib Illuminate para criar e manusear o Banco de dados e suas configurações.
 
 // ! Para criar caminhos (rotas) para API, precisamos dizer qual tipo de caminho é (GET, POST, PUT, DELETE...) sendo qua cada um tem suas peculiaridades na forma como 
 // ! tem que agir.
@@ -8,35 +9,88 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 require 'vendor/autoload.php';
 
-// title: ----------------------------- Configurando Middleware(filtro) para rotas ---------------------------
+// title: ----------------------------- Configurando Banco de dados no Slim ----------------------------------
 $app = new \Slim\App([ // @ Iniciando o objeto Slim para usarmos.
     'settings' => [ // @ Ativa a exibição de erros na config do objeto.
         'displayErrorDetails' => true
     ]
 ]);
-// title: Criando middleware 
-$app->add( function ($request, $response, $next){ // @ O middleware é criado oara todas as rotas e serve para filtrar antes de chegar nas rotas de fato 
-    $response->write('Inicio camada 1 +'); // @ Acessa isso ao entrar no middleware
-    $next($request, $response);
-    $response->write(' + Passando de novo no filtro 1'); // @ Acesso ao sair do middleware
-    return $response;
-});
-// title: Primeira camada à ser executada.
-$app->add( function($request, $response, $next){ // @ as camadas de filtros(middlewares) é definida de baixo para cima, assim essa é a primeira.
-    $response->write(' Inicio camada 2 +'); // @ Acessa isso ao entrar no middleware
-    $next($request, $response); 
-    $response->write(' + Passando de novo filtro 2'); // @ Acesso ao sair do middleware
-    return $response;
-});
+$container = $app->getContainer();
+$container['db'] = function(){
+    $capsule = new Capsule;
+    $capsule->addConnection([
+        'driver'    => 'mysql',
+        'host'      => 'localhost',
+        'database'  => 'slim',
+        'username'  => 'root',
+        'password'  => '',
+        'charset'   => 'utf8',
+        'collation' => 'utf8_unicode_ci',
+        'prefix'    => '',
+    ]);
+    // @ Tornar a instância global.
+    $capsule->setAsGlobal();
+    // @ Ferramenta para fazer a comunicação com o BD.
+    $capsule->bootEloquent();
 
-$app->get( '/usuarios', function(Request $request, Response $response){
-    $response->write(' Ação principal usuarios');
-});
-$app->get( '/postagens', function(Request $request, Response $response){
-    $response->write(' Ação principal postagens');
-});
+    return $capsule;
+};
+    $app->get( '/usuarios', function(Request $request, Response $response){
+        // @ Obtendo o objeto BD no container.
+        $db = $this->get('db');
+        //@ Usando a lib illuminate pra criar a Tabela no Banco de dados.
+        // $db->schema()->dropIfExists('usuarios');
+        // $db->schema()->create('usuarios', function($table){
+        //     $table->increments('id');
+        //     $table->string('nome');
+        //     $table->string('email');
+        //     $table->timestamps();
+        // });
+        //@ Usando a lib illuminate pra inserir dados na Tabela do Banco de dados.
+        // $db->table('usuarios')->insert([
+        //     'nome' => 'Samuel J',
+        //     'email' => 'samuel.santos@gmail.com'
+        // ]);
+        //@ Usando a lib illuminate pra atualizar dados na Tabela do Banco de dados.
+        // $db->table('usuarios')->where('id',1)->update([
+        //     'nome' => 'Samuka J',
+        //     'email' => 'samukinha.santos@gmail.com'
+        // ]);
+        //@ Usando a lib illuminate pra deletar dados da Tabela do Banco de dados.
+        // $db->table('usuarios')->where('id',1)->delete();
+        //@ Usando a lib illuminate pra listar os dados da Tabela do Banco de dados.
+        $listas = $db->table('usuarios')->get();
+        foreach ($listas as $dado ) {
+            echo $dado->nome . '<br>';
+        }
 
+    });
 $app->run();
+// title: ----------------------------------------------------------------------------------------------------
+// title: ----------------------------- Configurando Middleware(filtro) para rotas ---------------------------
+
+// title: Criando middleware 
+// $app->add( function ($request, $response, $next){ // @ O middleware é criado oara todas as rotas e serve para filtrar antes de chegar nas rotas de fato 
+//     $response->write('Inicio camada 1 +'); // @ Acessa isso ao entrar no middleware
+//     $next($request, $response);
+//     $response->write(' + Passando de novo no filtro 1'); // @ Acesso ao sair do middleware
+//     return $response;
+// });
+// title: Primeira camada à ser executada.
+// $app->add( function($request, $response, $next){ // @ as camadas de filtros(middlewares) é definida de baixo para cima, assim essa é a primeira.
+//     $response->write(' Inicio camada 2 +'); // @ Acessa isso ao entrar no middleware
+//     $next($request, $response); 
+//     $response->write(' + Passando de novo filtro 2'); // @ Acesso ao sair do middleware
+//     return $response;
+// });
+
+// $app->get( '/usuarios', function(Request $request, Response $response){
+//     $response->write(' Ação principal usuarios');
+// });
+// $app->get( '/postagens', function(Request $request, Response $response){
+//     $response->write(' Ação principal postagens');
+// });
+
 // title: ----------------------------------------------------------------------------------------------------
 
 //  title: ---------------------------- Enviando informações no cabeçalho da requisição ----------------------
